@@ -1,3 +1,5 @@
+include(GoogleTest)
+
 file(GLOB TEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/test_*.cpp")
 
 foreach (TEST_FILE ${TEST_SOURCES})
