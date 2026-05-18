@@ -1,9 +1,13 @@
-#include <cpr/cpr.h>
-
 #include <cstdlib>
 #include <iostream>
 #include <string>
 #include <string_view>
+#include <variant>
+
+#include "http_client.hpp"
+#include "response_parser.hpp"
+#include "tool_executor.hpp"
+#include "util/overloaded.hpp"
 
 #include <nlohmann/json.hpp>
 
@@ -55,34 +59,22 @@ auto main(int argc, char* argv[]) -> int {
                 json::array({{{"role", "user"}, {"content", prompt}}})},
                {"tools", tools_array}};
 
-        cpr::Response response
-            = cpr::Post(cpr::Url{base_url + "/chat/completions"},
-                        cpr::Header{{"Authorization", "Bearer " + api_key},
-                                    {"Content-Type", "application/json"}},
-                        cpr::Body{request_body.dump()});
+        HttpClient client(api_key, base_url);
+        auto response_text = client.chat_completion(request_body);
 
-        if (response.status_code != 200) [[unlikely]] {
-            std::cerr << "HTTP error: " << response.status_code << '\n';
-            return EXIT_FAILURE;
-        }
+        auto parsed = ResponseParser::parse(response_text);
 
-        json result = json::parse(response.text);
+        std::visit(overloaded{
+                       [](const ContentResult& result) {
+                           std::cout << result.content << '\n';
+                       },
+                       [](const ToolCall& tool_call) {
+                           std::cout << ToolExecutor::execute(tool_call)
+                                     << '\n';
+                       },
+                   },
+                   parsed);
 
-        if (!result.contains("choices") || result["choices"].empty())
-            [[unlikely]] {
-            std::cerr << "No choices in response\n";
-            return EXIT_FAILURE;
-        }
-
-        const auto& choice = result["choices"][0];
-        if (!choice.contains("message")
-            || !choice["message"].contains("content")) [[unlikely]] {
-            std::cerr
-                << "Invalid response format: missing message or content\n";
-            return EXIT_FAILURE;
-        }
-
-        std::cout << choice["message"]["content"].get<std::string>() << '\n';
     } catch (const json::exception& e) {
         std::cerr << "JSON error: " << e.what() << '\n';
         return EXIT_FAILURE;

@@ -36,35 +36,39 @@ else ()
     find_package(GTest REQUIRED)
 endif ()
 
-add_library(claude-code_core INTERFACE)
-target_include_directories(claude-code_core INTERFACE ${CMAKE_SOURCE_DIR}/src)
-target_compile_features(claude-code_core INTERFACE cxx_std_23)
+add_library(
+    claude-code_core STATIC src/http_client.cpp src/response_parser.cpp
+                            src/tool_executor.cpp
+)
+target_include_directories(claude-code_core PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_compile_features(claude-code_core PUBLIC cxx_std_23)
 target_compile_options(
     claude-code_core
-    INTERFACE -Wall
-              -Wextra
-              -Wpedantic
-              -Werror
-              -Wshadow
-              -Wconversion
-              $<$<CONFIG:Debug>:-g
-              -O0>
-              $<$<CONFIG:Release>:-O3>
+    PUBLIC -Wall
+           -Wextra
+           -Wpedantic
+           -Werror
+           -Wshadow
+           -Wconversion
+           $<$<CONFIG:Debug>:-g
+           -O0>
+           $<$<CONFIG:Release>:-O3>
+)
+target_link_libraries(
+    claude-code_core PUBLIC cpr::cpr nlohmann_json::nlohmann_json
 )
 
 add_executable(claude-code src/main.cpp)
-target_link_libraries(
-    claude-code PRIVATE claude-code_core cpr::cpr nlohmann_json::nlohmann_json
-)
+target_link_libraries(claude-code PRIVATE claude-code_core)
 
 option(ENABLE_SANITIZERS "Enable Address and Undefined Behavior Sanitizers" OFF)
 
 if (ENABLE_SANITIZERS)
     target_compile_options(
-        claude-code_core INTERFACE -fsanitize=address,undefined
-                                   -fno-omit-frame-pointer
+        claude-code_core PUBLIC -fsanitize=address,undefined
+                                -fno-omit-frame-pointer
     )
-    target_link_options(claude-code_core INTERFACE -fsanitize=address,undefined)
+    target_link_options(claude-code_core PUBLIC -fsanitize=address,undefined)
 endif ()
 
 option(BUILD_TESTS "Build tests" ON)
