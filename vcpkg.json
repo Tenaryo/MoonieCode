@@ -1,6 +1,7 @@
 {
     "dependencies": [
         "cpr",
+        "gtest",
         "nlohmann-json"
     ]
 }
