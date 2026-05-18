@@ -53,27 +53,65 @@ auto main(int argc, char* argv[]) -> int {
                       {"description", "The path to the file to read"}}}}},
                   {"required", json::array({"file_path"})}}}}}}});
 
-        json request_body
-            = {{"model", "anthropic/claude-haiku-4.5"},
-               {"messages",
-                json::array({{{"role", "user"}, {"content", prompt}}})},
-               {"tools", tools_array}};
+        json messages = json::array({{{"role", "user"}, {"content", prompt}}});
 
         HttpClient client(api_key, base_url);
-        auto response_text = client.chat_completion(request_body);
 
-        auto parsed = ResponseParser::parse(response_text);
+        constexpr int kMaxIterations = 30;
+        int iteration = 0;
+        bool done = false;
 
-        std::visit(overloaded{
-                       [](const ContentResult& result) {
-                           std::cout << result.content << '\n';
-                       },
-                       [](const ToolCall& tool_call) {
-                           std::cout << ToolExecutor::execute(tool_call)
-                                     << '\n';
-                       },
-                   },
-                   parsed);
+        while (!done) {
+            if (++iteration > kMaxIterations) [[unlikely]] {
+                std::cerr << "Error: exceeded maximum iterations ("
+                          << kMaxIterations << ")\n";
+                return EXIT_FAILURE;
+            }
+
+            json request_body = {{"model", "anthropic/claude-haiku-4.5"},
+                                 {"messages", messages},
+                                 {"tools", tools_array}};
+
+            auto response_text = client.chat_completion(request_body);
+            auto parsed = ResponseParser::parse(response_text);
+
+            std::visit(
+                overloaded{
+                    [&](const ContentResult& result) {
+                        messages.push_back({{"role", "assistant"},
+                                            {"content", result.content}});
+                        std::cout << result.content << '\n';
+                        done = true;
+                    },
+                    [&](const std::vector<ToolCall>& tool_calls) {
+                        json tc_array = json::array();
+                        for (const auto& call : tool_calls) {
+                            tc_array.push_back(
+                                {{"id", call.id},
+                                 {"type", "function"},
+                                 {"function",
+                                  {{"name", call.name},
+                                   {"arguments", call.arguments.dump()}}}});
+                        }
+                        messages.push_back({{"role", "assistant"},
+                                            {"content", nullptr},
+                                            {"tool_calls", tc_array}});
+
+                        for (const auto& call : tool_calls) {
+                            std::string result;
+                            try {
+                                result = ToolExecutor::execute(call);
+                            } catch (const std::exception& e) {
+                                result = std::string("Error: ") + e.what();
+                            }
+                            messages.push_back({{"role", "tool"},
+                                                {"tool_call_id", call.id},
+                                                {"content", result}});
+                        }
+                    },
+                },
+                parsed);
+        }
 
     } catch (const json::exception& e) {
         std::cerr << "JSON error: " << e.what() << '\n';

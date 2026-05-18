@@ -3,6 +3,7 @@
 #include <string>
 #include <string_view>
 #include <variant>
+#include <vector>
 
 #include <nlohmann/json.hpp>
 
@@ -11,11 +12,12 @@ struct ContentResult {
 };
 
 struct ToolCall {
+    std::string id;
     std::string name;
     nlohmann::json arguments;
 };
 
-using ParsedResponse = std::variant<ContentResult, ToolCall>;
+using ParsedResponse = std::variant<ContentResult, std::vector<ToolCall>>;
 
 class ResponseParser {
   public:
