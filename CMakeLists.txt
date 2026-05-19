@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 
 project(
-    claude-code
+    moonie-code
     VERSION 1.0.0
     LANGUAGES CXX
 )
@@ -31,14 +31,14 @@ FetchContent_MakeAvailable(cpr)
 find_package(GTest REQUIRED)
 
 add_library(
-    claude-code_core STATIC
+    moonie-code_core STATIC
     src/http_client/http_client.cpp src/response_parser/response_parser.cpp
     src/tool_executor/tool_executor.cpp
 )
-target_include_directories(claude-code_core PUBLIC ${CMAKE_SOURCE_DIR}/src)
-target_compile_features(claude-code_core PUBLIC cxx_std_23)
+target_include_directories(moonie-code_core PUBLIC ${CMAKE_SOURCE_DIR}/src)
+target_compile_features(moonie-code_core PUBLIC cxx_std_23)
 target_compile_options(
-    claude-code_core
+    moonie-code_core
     PUBLIC -Wall
            -Wextra
            -Wpedantic
@@ -50,20 +50,20 @@ target_compile_options(
            $<$<CONFIG:Release>:-O3>
 )
 target_link_libraries(
-    claude-code_core PUBLIC cpr::cpr nlohmann_json::nlohmann_json
+    moonie-code_core PUBLIC cpr::cpr nlohmann_json::nlohmann_json
 )
 
-add_executable(claude-code src/main.cpp)
-target_link_libraries(claude-code PRIVATE claude-code_core)
+add_executable(moonie-code src/main.cpp)
+target_link_libraries(moonie-code PRIVATE moonie-code_core)
 
 option(ENABLE_SANITIZERS "Enable Address and Undefined Behavior Sanitizers" OFF)
 
 if (ENABLE_SANITIZERS)
     target_compile_options(
-        claude-code_core PUBLIC -fsanitize=address,undefined
+        moonie-code_core PUBLIC -fsanitize=address,undefined
                                 -fno-omit-frame-pointer
     )
-    target_link_options(claude-code_core PUBLIC -fsanitize=address,undefined)
+    target_link_options(moonie-code_core PUBLIC -fsanitize=address,undefined)
 endif ()
 
 option(BUILD_TESTS "Build tests" ON)

@@ -22,7 +22,7 @@ body:
       description: How can we reproduce this bug?
       placeholder: |
         1. Build with `./build.sh`
-        2. Run `./build/claude-code ...`
+        2. Run `./build/moonie-code ...`
         3. ...
     validations:
       required: true
