@@ -51,7 +51,22 @@ auto main(int argc, char* argv[]) -> int {
                    {{"file_path",
                      {{"type", "string"},
                       {"description", "The path to the file to read"}}}}},
-                  {"required", json::array({"file_path"})}}}}}}});
+                  {"required", json::array({"file_path"})}}}}}},
+             {{{"type", "function"},
+               {"function",
+                {{"name", "Write"},
+                 {"description", "Write content to a file"},
+                 {"parameters",
+                  {{"type", "object"},
+                   {"properties",
+                    {{"file_path",
+                      {{"type", "string"},
+                       {"description", "The path of the file to write to"}}},
+                     {"content",
+                      {{"type", "string"},
+                       {"description", "The content to write to the file"}}}},
+                    {"required",
+                     json::array({"file_path", "content"})}}}}}}}}});
 
         json messages = json::array({{{"role", "user"}, {"content", prompt}}});
 

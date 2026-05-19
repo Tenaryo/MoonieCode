@@ -11,4 +11,6 @@ class ToolExecutor {
   private:
     [[nodiscard]] static auto handle_read(const nlohmann::json& arguments)
         -> std::string;
+    [[nodiscard]] static auto handle_write(const nlohmann::json& arguments)
+        -> std::string;
 };
