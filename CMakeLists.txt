@@ -10,31 +10,25 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-if (DEFINED VCPKG_TARGET_TRIPLET)
-    find_package(cpr CONFIG REQUIRED)
-    find_package(nlohmann_json CONFIG REQUIRED)
-    find_package(GTest CONFIG REQUIRED)
-else ()
-    find_package(nlohmann_json REQUIRED)
+find_package(nlohmann_json REQUIRED)
 
-    include(FetchContent)
-    FetchContent_Declare(
-        cpr
-        GIT_REPOSITORY https://github.com/libcpr/cpr.git
-        GIT_TAG 1.10.5
-    )
-    set(CPR_ENABLE_SSL
-        OFF
-        CACHE BOOL "" FORCE
-    )
-    set(CPR_USE_SYSTEM_CURL
-        ON
-        CACHE BOOL "" FORCE
-    )
-    FetchContent_MakeAvailable(cpr)
+include(FetchContent)
+FetchContent_Declare(
+    cpr
+    GIT_REPOSITORY https://github.com/libcpr/cpr.git
+    GIT_TAG 1.10.5
+)
+set(CPR_ENABLE_SSL
+    OFF
+    CACHE BOOL "" FORCE
+)
+set(CPR_USE_SYSTEM_CURL
+    ON
+    CACHE BOOL "" FORCE
+)
+FetchContent_MakeAvailable(cpr)
 
-    find_package(GTest REQUIRED)
-endif ()
+find_package(GTest REQUIRED)
 
 add_library(
     claude-code_core STATIC
