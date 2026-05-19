@@ -37,8 +37,9 @@ else ()
 endif ()
 
 add_library(
-    claude-code_core STATIC src/http_client.cpp src/response_parser.cpp
-                            src/tool_executor.cpp
+    claude-code_core STATIC
+    src/http_client/http_client.cpp src/response_parser/response_parser.cpp
+    src/tool_executor/tool_executor.cpp
 )
 target_include_directories(claude-code_core PUBLIC ${CMAKE_SOURCE_DIR}/src)
 target_compile_features(claude-code_core PUBLIC cxx_std_23)
