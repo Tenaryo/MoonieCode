@@ -92,3 +92,47 @@ TEST(ToolExecutorTest, ExecuteWriteCreateParentDirs) {
 
     fs::remove_all(kTestDir);
 }
+
+TEST(ToolExecutorTest, ExecuteBashSimpleCommand) {
+    ToolCall tool_call;
+    tool_call.name = "Bash";
+    tool_call.arguments = nlohmann::json::object({{"command", "echo hello"}});
+
+    const auto result = ToolExecutor::execute(tool_call);
+    EXPECT_NE(result.find("hello"), std::string::npos);
+    EXPECT_NE(result.find("[exit code: 0]"), std::string::npos);
+}
+
+TEST(ToolExecutorTest, ExecuteBashDeleteFile) {
+    const std::string kTestPath = "/tmp/test_bash_delete_me.txt";
+
+    {
+        std::ofstream file(kTestPath);
+        file << "temp content";
+    }
+    ASSERT_TRUE(fs::exists(kTestPath));
+
+    ToolCall tool_call;
+    tool_call.name = "Bash";
+    tool_call.arguments
+        = nlohmann::json::object({{"command", "rm " + kTestPath}});
+
+    const auto result = ToolExecutor::execute(tool_call);
+    EXPECT_NE(result.find("[exit code: 0]"), std::string::npos);
+    EXPECT_FALSE(fs::exists(kTestPath));
+}
+
+TEST(ToolExecutorTest, ExecuteBashFailingCommand) {
+    ToolCall tool_call;
+    tool_call.name = "Bash";
+    tool_call.arguments
+        = nlohmann::json::object({{"command", "ls /nonexistent_path_xyz"}});
+
+    const auto result = ToolExecutor::execute(tool_call);
+    const auto exit_pos = result.find("[exit code: ");
+    ASSERT_NE(exit_pos, std::string::npos);
+    const auto code_str = result.substr(
+        exit_pos + 12, result.find(']', exit_pos) - exit_pos - 12);
+    const int exit_code = std::stoi(code_str);
+    EXPECT_NE(exit_code, 0);
+}

@@ -17,4 +17,6 @@ class ToolExecutor {
         -> std::string;
     [[nodiscard]] static auto handle_write(const nlohmann::json& arguments)
         -> std::string;
+    [[nodiscard]] static auto handle_bash(const nlohmann::json& arguments)
+        -> std::string;
 };

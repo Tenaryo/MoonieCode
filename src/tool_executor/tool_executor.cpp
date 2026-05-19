@@ -1,5 +1,9 @@
 #include "tool_executor.hpp"
 
+#include <sys/wait.h>
+
+#include <array>
+#include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
@@ -37,7 +41,19 @@ auto ToolExecutor::tools_schema() -> nlohmann::json {
     write_tool["function"]["parameters"]["required"]
         = nlohmann::json::array({"file_path", "content"});
 
-    return nlohmann::json::array({read_tool, write_tool});
+    nlohmann::json bash_tool;
+    bash_tool["type"] = "function";
+    bash_tool["function"]["name"] = "Bash";
+    bash_tool["function"]["description"] = "Execute a shell command";
+    bash_tool["function"]["parameters"]["type"] = "object";
+    bash_tool["function"]["parameters"]["properties"]["command"]["type"]
+        = "string";
+    bash_tool["function"]["parameters"]["properties"]["command"]["description"]
+        = "The command to execute";
+    bash_tool["function"]["parameters"]["required"]
+        = nlohmann::json::array({"command"});
+
+    return nlohmann::json::array({read_tool, write_tool, bash_tool});
 }
 
 auto ToolExecutor::execute(const ToolCall& tool_call) -> std::string {
@@ -46,6 +62,9 @@ auto ToolExecutor::execute(const ToolCall& tool_call) -> std::string {
     }
     if (tool_call.name == "Write") {
         return handle_write(tool_call.arguments);
+    }
+    if (tool_call.name == "Bash") {
+        return handle_bash(tool_call.arguments);
     }
     throw std::runtime_error("Unknown tool: " + tool_call.name);
 }
@@ -92,4 +111,36 @@ auto ToolExecutor::handle_write(const nlohmann::json& arguments)
     file << content;
 
     return "File written successfully: " + path;
+}
+
+auto ToolExecutor::handle_bash(const nlohmann::json& arguments) -> std::string {
+    if (!arguments.contains("command")) {
+        throw std::runtime_error("Bash tool: missing command");
+    }
+
+    const auto command = arguments["command"].get<std::string>();
+    if (command.empty()) {
+        throw std::runtime_error("Bash tool: command must not be empty");
+    }
+
+    const auto full_cmd = command + " 2>&1";
+
+    FILE* pipe = popen(full_cmd.c_str(), "r");
+    if (pipe == nullptr) {
+        throw std::runtime_error("Bash tool: failed to execute command");
+    }
+
+    std::string output;
+    std::array<char, 4096> buffer{};
+    std::size_t bytes_read = 0;
+    while ((bytes_read = std::fread(buffer.data(), 1, buffer.size(), pipe))
+           > 0) {
+        output.append(buffer.data(), bytes_read);
+    }
+
+    int status = pclose(pipe);
+    int exit_code = WIFEXITED(status) ? WEXITSTATUS(status) : status;
+
+    output += "\n[exit code: " + std::to_string(exit_code) + "]";
+    return output;
 }
